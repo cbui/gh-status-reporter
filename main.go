@@ -123,6 +123,7 @@ func main() {
 		args = flag.Args()[1:]
 	} else {
 		fmt.Printf("Error: no command given")
+		os.Exit(1)
 	}
 
 	url := "https://api.github.com/repos/" + *orgRepo + "/statuses/" + *sha
