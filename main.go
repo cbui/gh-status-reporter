@@ -3,10 +3,10 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -20,96 +20,100 @@ type CommitStatusParams struct {
 }
 
 type Flags struct {
-	OrgRepo     *string
-	SHA         *string
-	Context     *string
-	Description *string
-	TargetUrl   *string
-	Username    *string
-	Password    *string
+	OrgRepo     string
+	SHA         string
+	Context     string
+	Description string
+	TargetUrl   string
+	Username    string
+	Auth        string
 }
 
-func commitStatusURL(orgRepo string, sha string) string {
-	return "https://api.github.com/repos/" + orgRepo + "/statuses/" + sha
+func validateRequiredFlags(flags Flags) error {
+	if flags.OrgRepo == "" {
+		return errors.New("Error: No Github organization/repository provided")
+	}
+
+	if flags.SHA == "" {
+		return errors.New("Error: No SHA provided")
+	}
+
+	if flags.Context == "" {
+		return errors.New("Error: No Github commit status context provided")
+	}
+
+	if flags.Auth == "" {
+		return errors.New("Error: No auth token or password provided")
+	}
+
+	return nil
 }
 
-func validateRequiredFlags(flags Flags) {
-	errors := false
-
-	if *flags.Username == "" || *flags.Password == "" {
-		fmt.Println("Error: No username and password provided")
-		errors = true
-	}
-
-	if *flags.OrgRepo == "" {
-		fmt.Println("Error: No Github organization/repository provided")
-		errors = true
-	}
-
-	if *flags.Context == "" {
-		fmt.Println("Error: No SHA provided")
-		errors = true
-	}
-
-	if *flags.Context == "" {
-		fmt.Println("Error: No Github commit status context provided")
-		errors = true
-	}
-
-	if errors {
-		flag.Usage()
-		os.Exit(1)
-	}
-}
-
-func setGithubCommitStatus(url string, flags Flags, state string) {
+func setGithubCommitStatus(url string, flags Flags, state string) error {
 	params := &CommitStatusParams{
 		State:       state,
-		TargetUrl:   *flags.TargetUrl,
-		Description: *flags.Description,
-		Context:     *flags.Context,
+		TargetUrl:   flags.TargetUrl,
+		Description: flags.Description,
+		Context:     flags.Context,
 	}
 
 	requestBody, err := json.Marshal(params)
 	if err != nil {
-		log.Fatalf("Error converting %q to json %s.", params, err)
+		return fmt.Errorf("Error converting %q to json %s.", params, err)
 	}
 
 	req, err := http.NewRequest("POST", url, bytes.NewReader(requestBody))
-	req.SetBasicAuth(*flags.Username, *flags.Password)
+	req.SetBasicAuth(flags.Username, flags.Auth)
 
 	client := &http.Client{}
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Fatalf("Error executing request to Github: %s", err)
+		return fmt.Errorf("Error executing request to Github: %s", err)
 	}
 
 	responseBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatalf("Error reading response body: %q %s", resp.Body, err)
+		return fmt.Errorf("Error reading response body: %q %s", resp.Body, err)
 	}
 
 	if resp.StatusCode != http.StatusCreated {
-		log.Fatalf("Error creating commit status on Github.\nPOST %s\nAuth: '%s:%s'\nParams: %s\nResponse Body: %s",
-			url, *flags.Username, *flags.Password, requestBody, responseBody)
+		return fmt.Errorf("Error creating commit status on Github.\n%s", responseBody)
+	}
+
+	return nil
+}
+
+func exitIfError(err error) {
+	if err != nil {
+		fmt.Printf("%s\n", err.Error())
+		os.Exit(1)
 	}
 }
 
 func main() {
-	flags := &Flags{
-		OrgRepo:     flag.String("r", "", "Required: Github repository in the form of organization/repository, e.g google/cadvisor"),
-		SHA:         flag.String("s", "", "Required: Github commit status SHA"),
-		Context:     flag.String("c", "", "Required: Github commit status context"),
-		Description: flag.String("d", "", "Optional: Github commit status description"),
-		TargetUrl:   flag.String("t", "", "Optional: Github commit status target_url"),
-		Username:    flag.String("u", "", "Required: Github username"),
-		Password:    flag.String("p", "", "Required: Github password or token for basic auth"),
-	}
+	orgRepo := flag.String("r", "", "Required: Github repository in the form of organization/repository, e.g google/cadvisor")
+	sha := flag.String("s", "", "Required: Github commit status SHA")
+	context := flag.String("c", "", "Required: Github commit status context")
+	description := flag.String("d", "", "Optional: Github commit status description")
+	targetUrl := flag.String("t", "", "Optional: Github commit status target_url")
+	username := flag.String("u", "", "Optional: Github username for basic auth")
+	auth := flag.String("a", "", "Required: Github password or token for basic auth")
 
 	flag.Parse()
 
-	validateRequiredFlags(*flags)
+	flags := &Flags{
+		OrgRepo:     *orgRepo,
+		SHA:         *sha,
+		Context:     *context,
+		Description: *description,
+		TargetUrl:   *targetUrl,
+		Username:    *username,
+		Auth:        *auth,
+	}
+
+	err := validateRequiredFlags(*flags)
+	exitIfError(err)
 
 	var cmd string
 	var args []string
@@ -118,30 +122,34 @@ func main() {
 		cmd = flag.Args()[0]
 		args = flag.Args()[1:]
 	} else {
-		log.Fatalf("Error: no command given")
+		fmt.Printf("Error: no command given")
 	}
 
-	url := commitStatusURL(*flags.OrgRepo, *flags.SHA)
+	url := "https://api.github.com/repos/" + *orgRepo + "/statuses/" + *sha
 
 	subprocess := exec.Command(cmd, args...)
 	subprocess.Stdin, subprocess.Stdout, subprocess.Stderr = os.Stdin, os.Stdout, os.Stderr
 
-	setGithubCommitStatus(url, *flags, "pending")
+	err = setGithubCommitStatus(url, *flags, "pending")
+	exitIfError(err)
 
-	err := subprocess.Run()
+	err = subprocess.Run()
 
 	if err == nil {
-		setGithubCommitStatus(url, *flags, "success")
+		err = setGithubCommitStatus(url, *flags, "success")
+		exitIfError(err)
 		os.Exit(0)
 	}
 
 	if err.Error() != "0" {
-		setGithubCommitStatus(url, *flags, "failure")
-		os.Exit(1)
+		err = setGithubCommitStatus(url, *flags, "failure")
+		exitIfError(err)
 	}
 
 	if err != nil {
-		setGithubCommitStatus(url, *flags, "error")
-		log.Fatalf("Error: executing command %s with args %q: %s", cmd, args, err)
+		err = setGithubCommitStatus(url, *flags, "error")
+		exitIfError(err)
+		fmt.Printf("Error: executing command %s with args %q: %s\n", cmd, args, err)
+		os.Exit(1)
 	}
 }
