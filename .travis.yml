@@ -14,6 +14,7 @@ deploy:
   api_key:
     secure: xIyuu19uS6O+QZnt28ixlnd/yKh2IT0PgHs+fJuA6lPmw3Dcdz9Eea+5Hf5iORLtXxXoZw6pN4C5sSNawC5GrCBYETsBWSXBO/tG3J3dj3cZiVk4wbs9rP8QvhQ/znvL+YctbqIItq0nhIPCx1LTG8g31VRQInDp7uFUMU95bwOsx5P5wi9jhi1egp1r0YT42PGoSFxFVlO8EdJGJ5/MitHHLQmiEjjPkkcjYtK74in0XSLP10umaMctbob/JEV54QJlJvXrtt+7ETXbhSUyu+0lfV8rQuBL+pzxw9i+2d7vkRmSIDX3/LUVmZ4OAGwIZAm3B/oW4hcy02uAahRtMZrSR2qAbQzkIpFkMiQeZ82KfWLiMmRNQopc02s7QywCjcI1ZKW3WfdAU7AZZjdx8XOh6Zv9iWclhb4ndtuIO47gUiAr+i0uE5Z5anx5OQ5HLTd0QgE27p0/xZJdEL6KqaF3p24ofA/9DhIx/V+BybmuBWGAM9s+xenfcOUwf3Kdi4W1IheI5H18y3jlmRama78C6S8AJkyRFpnmkrxvROS7i6eaiP5JMPax1kKlM755lHxHBujZcOLRjisd3EO6MUmBrqv2Whes3o07yHncYp9Zsq2By40m1Ik0UbWG2halPaq0hmhtqdpQ2drxpeBfVIyWyA29eMfGaAZ69JO4ROA=
   file: dist/*
+  skip_cleanup: true
   on:
     repo: Christopher-Bui/gh-status-reporter
     tags: true
