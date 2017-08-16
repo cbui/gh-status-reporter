@@ -145,6 +145,7 @@ func main() {
 	if err.Error() != "0" {
 		err = setGithubCommitStatus(url, *flags, "failure")
 		exitIfError(err)
+		os.Exit(1)
 	}
 
 	if err != nil {
