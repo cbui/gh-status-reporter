@@ -6,6 +6,7 @@ before_install:
 script:
 - go test
 - gox -output "dist/{{.OS}}_{{.Arch}}_{{.Dir}}"
+- chmod -R +x ./dist
 
 deploy:
   provider: releases
