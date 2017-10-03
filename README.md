@@ -28,6 +28,19 @@ Usage of ./gh-status-reporter:
     	Optional: Github username for basic auth
 ```
 
+Instead of passing in a value for every flag, you may choose to use environment
+variables that correspond to each flag:
+
+```
+BUILD_ORG_REPO
+BUILD_SHA
+BUILD_CONTEXT
+BUILD_DESCRIPTION
+BUILD_TARGET_URL
+BUILD_USER
+BUILD_AUTH
+```
+
 ```
 Example:
 

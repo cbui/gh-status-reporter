@@ -92,13 +92,13 @@ func exitIfError(err error) {
 }
 
 func main() {
-	orgRepo := flag.String("r", "", "Required: Github repository in the form of organization/repository, e.g google/cadvisor")
-	sha := flag.String("s", "", "Required: Github commit status SHA")
-	context := flag.String("c", "", "Required: Github commit status context")
-	description := flag.String("d", "", "Optional: Github commit status description")
-	targetUrl := flag.String("t", "", "Optional: Github commit status target_url")
-	username := flag.String("u", "", "Optional: Github username for basic auth")
-	auth := flag.String("a", "", "Required: Github password or token for basic auth")
+	orgRepo := flag.String("r", os.Getenv("BUILD_ORG_REPO"), "Required: Github repository in the form of organization/repository, e.g google/cadvisor")
+	sha := flag.String("s", os.Getenv("BUILD_SHA"), "Required: Github commit status SHA")
+	context := flag.String("c", os.Getenv("BUILD_CONTEXT"), "Required: Github commit status context")
+	description := flag.String("d", os.Getenv("BUILD_DESCRIPTION"), "Optional: Github commit status description")
+	targetUrl := flag.String("t", os.Getenv("BUILD_TARGET_URL"), "Optional: Github commit status target_url")
+	username := flag.String("u", os.Getenv("BUILD_USER"), "Optional: Github username for basic auth")
+	auth := flag.String("a", os.Getenv("BUILD_AUTH"), "Required: Github password or token for basic auth")
 
 	flag.Parse()
 
