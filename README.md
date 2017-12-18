@@ -18,6 +18,8 @@ Usage of ./gh-status-reporter:
     	Required: Github commit status context
   -d string
     	Optional: Github commit status description
+  -dev string
+    	Optional: If true, then ignores required flags and executes command as-is; without any status reporting
   -r string
     	Required: Github repository in the form of organization/repository, e.g google/cadvisor
   -s string
@@ -39,6 +41,7 @@ BUILD_DESCRIPTION
 BUILD_TARGET_URL
 BUILD_USER
 BUILD_AUTH
+BUILD_DEV
 ```
 
 ```

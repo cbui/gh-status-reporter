@@ -22,6 +22,7 @@ type CommitStatusParams struct {
 type Flags struct {
 	OrgRepo     string
 	SHA         string
+	Dev         string
 	Context     string
 	Description string
 	TargetUrl   string
@@ -99,21 +100,20 @@ func main() {
 	targetUrl := flag.String("t", os.Getenv("BUILD_TARGET_URL"), "Optional: Github commit status target_url")
 	username := flag.String("u", os.Getenv("BUILD_USER"), "Optional: Github username for basic auth")
 	auth := flag.String("a", os.Getenv("BUILD_AUTH"), "Required: Github password or token for basic auth")
+	dev := flag.String("dev", os.Getenv("BUILD_DEV"), "Optional: If provided, then ignores required flags and executes command as-is; without any status reporting")
 
 	flag.Parse()
 
 	flags := &Flags{
 		OrgRepo:     *orgRepo,
 		SHA:         *sha,
+		Dev:         *dev,
 		Context:     *context,
 		Description: *description,
 		TargetUrl:   *targetUrl,
 		Username:    *username,
 		Auth:        *auth,
 	}
-
-	err := validateRequiredFlags(*flags)
-	exitIfError(err)
 
 	var cmd string
 	var args []string
@@ -126,12 +126,26 @@ func main() {
 		os.Exit(1)
 	}
 
+	if *dev != "" {
+		subprocess := exec.Command(cmd, args...)
+		subprocess.Stdin, subprocess.Stdout, subprocess.Stderr = os.Stdin, os.Stdout, os.Stderr
+		err := subprocess.Run()
+		if err == nil {
+			os.Exit(0)
+		} else {
+			os.Exit(1)
+		}
+	} else {
+		err := validateRequiredFlags(*flags)
+		exitIfError(err)
+	}
+
 	url := "https://api.github.com/repos/" + *orgRepo + "/statuses/" + *sha
 
 	subprocess := exec.Command(cmd, args...)
 	subprocess.Stdin, subprocess.Stdout, subprocess.Stderr = os.Stdin, os.Stdout, os.Stderr
 
-	err = setGithubCommitStatus(url, *flags, "pending")
+	err := setGithubCommitStatus(url, *flags, "pending")
 	exitIfError(err)
 
 	err = subprocess.Run()
